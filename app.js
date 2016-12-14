@@ -1,72 +1,3 @@
-// const http = require('http');
-// const express = require('express');
-// var app = express();
-// var port = 8000;
-// var path = require('path')
-// var url = 'localhost'
-// //const server = app.listen(port);
-// var io = require("socket.io");
-
-
-// //app.use(express.static(path.join(__dirname, 'public')));
-
-// app.use(express.static(__dirname + '/'));
-
-// const server = http.createServer(app);
-// server.listen(port, () => {
-//     console.log("Server running and listening at http://localhost:${port}/");
-// });
-
-
-//    module.exports = app;
-
-// var bodyParser = require('body-parser');
-// var express = require("express");
-// var app = express();
-// var port = 8000;
-// var url='localhost'
-// var server = app.listen(port);
-// var io = require("socket.io").listen(server);
-// var serialport = require("serialport");
-// var SerialPort = serialport.SerialPort;
-// var port = new SerialPort("/dev/ttyAMA0", {
-//   baudrate: 9600,
-//   parser: serialport.parsers.readline("\n")
-// }, false);
-
-// io.sockets.on('connection', function (socket) {
-// 	port.open(function(error) {
-
-// 		  if (error) {
-// 		    console.log('failed to open: ' + error);
-// 		  } else {
-// 		    // port.write("A");
-// 		    console.log('Serial open');
-// 		    port.on('data', function(data) {
-// 		    //console.log('data length: ' + data.length);
-// 		    console.log(data);
-// 		    result = data.split(',')
-// 		    result[3]
-
-
-		  
-// 		    // console.log(data);
-// 		    // console.log("You sent R=" + data.r + " G="+ data.g + " B="+ data.g);
-// 		    socket.emit('toScreen', { r: result[1], g: result[2], b: result[3] });     
-		  
-
-
-
-		    
-// 		    // port.write("A");
-// 		    });
-
-
-// 		}
-  
-// 	});
-// });
-
 var bodyParser = require('body-parser');
 var express = require("express");
 var app = express();
@@ -79,6 +10,8 @@ var port = new SerialPort("/dev/ttyUSB0", {
   baudRate: 115200,
   parser: SerialPort.parsers.readline("\n")
 });
+var redis = require('redis');
+var client = redis.createClient();
 
 app.use(express.static(__dirname + '/'));
 console.log('Simple static server listening at '+url+':'+port);
@@ -87,6 +20,7 @@ console.log('Simple static server listening at '+url+':'+port);
 io.sockets.on('connection', function (socket) {
   socket.on('news', function (data) {
     console.log(data);
+    //console.log("You sent R=" + data.r + " G="+ data.g + " B="+ data.g);
     socket.emit('news', { hello: data });     
 
   });
@@ -98,25 +32,61 @@ var r = 0;
 var g = 0;
 var b = 0;
 
+client.on('connect', function(){
+  console.log('connected')
+})
+
+client.hmset('MyData', {
+  'woop': 'woooop'
+});
+
+////GET HASH
+client.hgetall('MyData', function(err, object) {
+    console.log(object);
+});
+
+var comingIn;
+
 io.sockets.on('connection',function(socket){
   
         port.on('data', function(data){
 
-            console.log(data);
+            // console.log(data);
             result = data.split('\n');
 
 
             // console.log("Success")
             
               socket.emit('connection', function(data){
-                console.log(result);
+                //console.log(result);
               });
 
               socket.emit('led', {value: result[0]});
 
-              io.sockets.emit('led', {value: result[0]});
+              //io.sockets.emit('led', {value: result[0]});
 
         });
+
+
+        socket.on('column1color', function(data){
+            // client.hmset('MyData', 
+            //     {result: data.result1}
+            //   )
+
+            client.exists('MyData', function(err, reply){
+                if(reply){
+                  // client.hmset('MyData',
+                  //   {comingIn: data.result1}
+                  // )
+                  console.log(data)
+                } else {
+                  console.log("error");
+                }
+
+            })
+
+        })
+
 
 
 });
@@ -134,6 +104,7 @@ io.sockets.on('connection', function (socket) {
           // socket.emit
         })
 });
+
 
 
 // open errors will be emitted as an error event
